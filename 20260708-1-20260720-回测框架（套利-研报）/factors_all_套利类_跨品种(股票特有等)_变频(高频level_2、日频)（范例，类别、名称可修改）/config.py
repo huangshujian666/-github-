@@ -187,47 +187,139 @@ config_custom = {
         "file_name_model": "factor_arbitrage",
 
         "param_dataSrc": [
-            {
-                "func_name_dataSrc": "query_DB",
-                "colName_dataSrc": [
-                    {"date": "trade_date"},
-                    "ts_code",
-                    "close",
-                    "settle",
-                ],
-                "security": [
-                    "OI1805.ZCE",  # 菜油
-                    "Y1805.DCE",   # 豆油
-                    "RM1805.ZCE",  # 菜粕
-                    "M1805.DCE",   # 豆粕
-                ],
-                "dataSrc_getMode": "download",
-                "colName_tradePrice": "close",
-            },
-        ],
+        {
+            "func_name_dataSrc": "read_file",
+            "file_name_dataSrc": "OI1805_ZCE.pickle",
+            "data_dir": "../DB_tushare/fut_daily/",
+            "colName_dataSrc": [
+                {"date": "trade_date"},
+                "ts_code",
+                "close",
+            ],
+            "security": "OI1805.ZCE",
+            "data_usage_purpose": None,
+            "colName_tradePrice": "close",
+        },
+        {
+            "func_name_dataSrc": "read_file",
+            "file_name_dataSrc": "Y1805_DCE.pickle",
+            "data_dir": "../DB_tushare/fut_daily/",
+            "colName_dataSrc": [
+                {"date": "trade_date"},
+                "ts_code",
+                "close",
+            ],
+            "security": "Y1805.DCE",
+            "data_usage_purpose": None,
+            "colName_tradePrice": "close",
+        },
+        {
+            "func_name_dataSrc": "read_file",
+            "file_name_dataSrc": "RM1805_ZCE.pickle",
+            "data_dir": "../DB_tushare/fut_daily/",
+            "colName_dataSrc": [
+                {"date": "trade_date"},
+                "ts_code",
+                "close",
+            ],
+            "security": "RM1805.ZCE",
+            "data_usage_purpose": None,
+            "colName_tradePrice": "close",
+        },
+        {
+            "func_name_dataSrc": "read_file",
+            "file_name_dataSrc": "M1805_DCE.pickle",
+            "data_dir": "../DB_tushare/fut_daily/",
+            "colName_dataSrc": [
+                {"date": "trade_date"},
+                "ts_code",
+                "close",
+            ],
+            "security": "M1805.DCE",
+            "data_usage_purpose": None,
+            "colName_tradePrice": "close",
+        },
+    ],
 
         "param_factor": {
+            # 滚动 OLS、协整检验和残差统计窗口长度。
             "window": 60,
+
+            # 残差上穿或下穿 2 倍标准差时的开仓阈值。
             "X": 2,
+
+            # 残差达到或超过 3 倍标准差时的止损阈值。
             "stop_loss_X": 3,
+
+            # 本研报复现使用标准差倍数阈值。
             "threshold_mode": "absolute",
 
+            # ADF 单整性和残差平稳性检验显著性水平。
+            "adf_alpha": 0.05,
+
+            # E-G 协整检验显著性水平。
+            "cointegration_alpha": 0.05,
+
+            # 每个滚动窗口均未通过协整检验时，强制输出空仓。
+            "require_rolling_cointegration": True,
+
+            # 止损平仓后暂停开仓 1 个交易日。
+            "cooldown_period": 1,
+
+            # ——————— V0 研究测试口径：后续取得真实历史参数后仅修改本配置 ———————
+            # 四个合约乘数：全部取 10
+            # 保证金率：全部暂取 10%
+            # 最小手数：全部取 1 手
+            # 注意：保证金率为研究测试假设，不代表 2018 年交易所真实历史保证金率。
+            "contract_multipliers": {
+                "OI1805.ZCE": 10,
+                "Y1805.DCE": 10,
+                "RM1805.ZCE": 10,
+                "M1805.DCE": 10,
+            },
+
+            # V0 研究测试采用的保证金率；不是历史交易所保证金率结论。
+            "margin_rates": {
+                "OI1805.ZCE": 0.10,
+                "Y1805.DCE": 0.10,
+                "RM1805.ZCE": 0.10,
+                "M1805.DCE": 0.10,
+            },
+
+            # 框架当前按目标比例下单；该字段先保留为真实手数化改造的配置入口。
+            "minimum_lots": {
+                "OI1805.ZCE": 1,
+                "Y1805.DCE": 1,
+                "RM1805.ZCE": 1,
+                "M1805.DCE": 1,
+            },
+
+            # 参与相关性、单整性和协整性筛选的候选合约。
             "candidate_codes": [
                 "OI1805.ZCE",
                 "Y1805.DCE",
                 "RM1805.ZCE",
                 "M1805.DCE",
             ],
-        "correlation_start": "2017-11-01",
-        "correlation_end": "2018-04-13",
-        "correlation_min_observations": 60,
-        "correlation_min_value": 0.70,
+
+            # 候选品种统计筛选使用的历史区间。
+            "correlation_start": "2017-11-01",
+            "correlation_end": "2018-04-13",
+
+            # 候选品种对需要满足的最小有效样本数。
+            "correlation_min_observations": 60,
+
+            # 候选品种对对数收益率相关系数最低阈值。
+            "correlation_min_value": 0.70,
         },
 
         "param_signal_search": {
             "bounds_val": [],
             "bounds": [],
             "n_calls": 1,
+            # V0 日频研究的统一简化滑点假设：两腿均按 2bp 计提。
+            # 未区分合约、方向、开平仓、交易所手续费、冲击成本及历史费率。
+            # 仅用于流程验证，不得表述为实盘交易成本或实盘绩效结论。
             "cost_slippage": [0.0002, 0.0002],
             "signal_drop_num": 0,
             "add_0_signal_flags": {
@@ -236,7 +328,11 @@ config_custom = {
         },
 
         "param_signal_search_combinations": {},
-
+        # 区间划分：
+        # 2017-11-01 至 2018-04-13 为预热与候选品种统计筛选期，不生成交易信号。
+        # 2018-04-14 至 2018-05-07 为策略验证期；仅约 17 个交易日。
+        # 当前尚未设置独立样本外区间，因此本结果仅用于流程验证，
+        # 不能作为研报策略有效性或收益能力的结论。
         "start_date": "2018-04-14",
         "end_date": "2018-05-07",
     },
