@@ -196,8 +196,10 @@ config_custom = {
                     "settle",
                 ],
                 "security": [
-                    "OI1805.ZCE",
-                    "Y1805.DCE",
+                    "OI1805.ZCE",  # 菜油
+                    "Y1805.DCE",   # 豆油
+                    "RM1805.ZCE",  # 菜粕
+                    "M1805.DCE",   # 豆粕
                 ],
                 "dataSrc_getMode": "download",
                 "colName_tradePrice": "close",
@@ -209,6 +211,17 @@ config_custom = {
             "X": 2,
             "stop_loss_X": 3,
             "threshold_mode": "absolute",
+
+            "candidate_codes": [
+                "OI1805.ZCE",
+                "Y1805.DCE",
+                "RM1805.ZCE",
+                "M1805.DCE",
+            ],
+        "correlation_start": "2017-11-01",
+        "correlation_end": "2018-04-13",
+        "correlation_min_observations": 60,
+        "correlation_min_value": 0.70,
         },
 
         "param_signal_search": {
