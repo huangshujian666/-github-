@@ -1,0 +1,3 @@
+code_type,round_lot,contract_multiplier,maturity_date,buy_margin_rate,sell_margin_rate,open_tax_rate,close_tax_rate,open_commission_rate,close_commission_rate,close_today_commission_rate,min_commission,commission_multiplier,transfer_fee_rate,margin_multiplier,fixed_slippage,price_related_slippage,management_fee_rate,locked_period
+default,1.0,1.0,,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0
+stock,,,,,,,,,,,,,,,,,,0.0
