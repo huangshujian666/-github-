@@ -1,0 +1,9 @@
+pandas==1.1.5
+numpy==1.19.5
+matplotlib==3.3.4
+tushare==1.2.89
+pyyaml==6.0.1
+python-dateutil==2.8.2
+scipy==1.5.4
+seaborn==0.11.2
+statsmodels==0.12.2
