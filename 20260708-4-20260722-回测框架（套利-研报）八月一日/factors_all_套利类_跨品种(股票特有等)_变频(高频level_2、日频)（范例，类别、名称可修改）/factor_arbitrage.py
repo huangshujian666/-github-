@@ -17,6 +17,198 @@ class ______价差配对类_____():
     pass
 
 
+def gold_cross_market_spread_factor(
+        price_table,
+        au_code="AU0.SHF",
+        gc_code="GC.COMEX",
+        fx_code="USDCNY.FX",
+        formation_end_date="2022-12-30",
+        entry_sigma=2.0,
+        min_formation_observations=252,
+):
+    """Calculate the AU/GC spread in USD per troy ounce.
+
+    spread = AU(RMB/g) - GC(USD/oz) * USD/CNY / 31.1035
+    """
+    required_codes = [au_code, gc_code, fx_code]
+    missing_codes = [
+        code for code in required_codes
+        if code not in price_table.columns
+    ]
+    if missing_codes:
+        raise ValueError(
+            "gold spread data is missing codes: {}".format(
+                missing_codes
+            )
+        )
+
+    factor = price_table[required_codes].copy().dropna(how="any")
+    if factor.empty:
+        raise ValueError("gold spread has no common trading dates.")
+    if (factor <= 0).any().any():
+        raise ValueError("gold spread prices and FX rates must be positive.")
+
+    factor["spread"] = (
+        factor[au_code]
+        - factor[gc_code] * factor[fx_code] / 31.1035
+    )
+
+    formation_end_date = pd.Timestamp(formation_end_date)
+    formation_spread = factor.loc[
+        factor.index <= formation_end_date,
+        "spread",
+    ].dropna()
+    if len(formation_spread) < int(min_formation_observations):
+        raise ValueError(
+            "formation sample is too short: {} < {}".format(
+                len(formation_spread),
+                min_formation_observations,
+            )
+        )
+
+    spread_mean = formation_spread.mean()
+    spread_std = formation_spread.std(ddof=1)
+    if pd.isna(spread_std) or spread_std <= 0:
+        raise ValueError("formation spread standard deviation must be positive.")
+
+    factor["spread_mean"] = spread_mean
+    factor["spread_std"] = spread_std
+    factor["upper_entry"] = spread_mean + float(entry_sigma) * spread_std
+    factor["lower_entry"] = spread_mean - float(entry_sigma) * spread_std
+    factor["z_score"] = (factor["spread"] - spread_mean) / spread_std
+    return factor
+
+
+def gold_cross_market_spread_signal(
+        df,
+        au_code="AU0.SHF",
+        gc_code="GC.COMEX",
+        fx_code="USDCNY.FX",
+        formation_end_date="2022-12-30",
+        entry_sigma=2.0,
+        exit_sigma=0.0,
+        min_consecutive_days=2,
+        min_formation_observations=252,
+        execution_delay=1,
+        au_contract_ratio=3.0,
+        gc_contract_ratio=1.0,
+        **kwargs
+):
+    """Generate the report-style AU/GC cross-market spread signals.
+
+    The FX series is used only in price conversion.  AU and GC are the
+    two signal legs.  The function returns two values because the current
+    pipeline truncates signals when a third value is returned.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame.")
+    required_columns = {"ts_code", "close"}
+    missing_columns = required_columns.difference(df.columns)
+    if missing_columns:
+        raise ValueError(
+            "raw data is missing columns: {}".format(
+                sorted(missing_columns)
+            )
+        )
+    if int(min_consecutive_days) < 1:
+        raise ValueError("min_consecutive_days must be at least 1.")
+    if int(execution_delay) < 0:
+        raise ValueError("execution_delay must be non-negative.")
+    if float(au_contract_ratio) <= 0 or float(gc_contract_ratio) <= 0:
+        raise ValueError("contract ratios must be positive.")
+
+    raw = df[["ts_code", "close"]].copy()
+    raw["date"] = pd.to_datetime(raw.index, errors="coerce")
+    raw["close"] = pd.to_numeric(raw["close"], errors="coerce")
+    raw = raw.dropna(subset=["date", "ts_code", "close"])
+    if raw.duplicated(["date", "ts_code"]).any():
+        raise ValueError("each date and ts_code pair must be unique.")
+
+    price_table = raw.pivot(
+        index="date",
+        columns="ts_code",
+        values="close",
+    ).sort_index()
+    factor = gold_cross_market_spread_factor(
+        price_table=price_table,
+        au_code=au_code,
+        gc_code=gc_code,
+        fx_code=fx_code,
+        formation_end_date=formation_end_date,
+        entry_sigma=entry_sigma,
+        min_formation_observations=min_formation_observations,
+    )
+
+    signal = pd.DataFrame(
+        0.0,
+        index=factor.index,
+        columns=[au_code, gc_code],
+    )
+    position = 0
+    upper_streak = 0
+    lower_streak = 0
+    formation_end_date = pd.Timestamp(formation_end_date)
+    exit_level = factor["spread_mean"].iloc[0]
+
+    for current_date, row in factor.iterrows():
+        if current_date <= formation_end_date:
+            continue
+
+        spread = row["spread"]
+        above_upper = spread > row["upper_entry"]
+        below_lower = spread < row["lower_entry"]
+        upper_streak = upper_streak + 1 if above_upper else 0
+        lower_streak = lower_streak + 1 if below_lower else 0
+
+        if position == 0:
+            if upper_streak >= int(min_consecutive_days):
+                # Spread is high: short AU and long GC.
+                position = -1
+            elif lower_streak >= int(min_consecutive_days):
+                # Spread is low: long AU and short GC.
+                position = 1
+        elif position == 1 and spread >= exit_level + float(exit_sigma) * row["spread_std"]:
+            position = 0
+        elif position == -1 and spread <= exit_level - float(exit_sigma) * row["spread_std"]:
+            position = 0
+
+        if position == 1:
+            signal.loc[current_date, au_code] = 1.0
+            signal.loc[current_date, gc_code] = -1.0
+        elif position == -1:
+            signal.loc[current_date, au_code] = -1.0
+            signal.loc[current_date, gc_code] = 1.0
+
+    if int(execution_delay) > 0:
+        signal = signal.shift(int(execution_delay)).fillna(0.0)
+
+    signal_weight = pd.DataFrame(
+        0.0,
+        index=signal.index,
+        columns=signal.columns,
+    )
+    active = signal.ne(0).any(axis=1)
+    total_ratio = float(au_contract_ratio) + float(gc_contract_ratio)
+    signal_weight.loc[active, au_code] = (
+        float(au_contract_ratio) / total_ratio
+    )
+    signal_weight.loc[active, gc_code] = (
+        float(gc_contract_ratio) / total_ratio
+    )
+
+    print(
+        "gold spread factor: formation_mean={:.4f}; formation_std={:.4f}; "
+        "upper={:.4f}; lower={:.4f}; active_days={}".format(
+            factor["spread_mean"].iloc[0],
+            factor["spread_std"].iloc[0],
+            factor["upper_entry"].iloc[0],
+            factor["lower_entry"].iloc[0],
+            int(active.sum()),
+        )
+    )
+    return signal, signal_weight
+
+
 def calculate_spread(df, window=60):     # ！！！范例，使用时需删除！！！
     """
         出处：https://mp.weixin.qq.com/xxxxxxxxxxxxxxxxxx

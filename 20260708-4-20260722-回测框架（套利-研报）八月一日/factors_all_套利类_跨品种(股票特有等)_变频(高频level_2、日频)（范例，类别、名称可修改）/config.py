@@ -181,103 +181,70 @@ config_custom = {
     # #                  # # 如果想让"param_dataSrc"的list中的每个字典有特有配置项，，则需要单独在该集合中单独添加或指定；
     # #                  }],
     # # "factor_dict": factor_dict,     # 当将factor_dict整体移到config_factor_dict.py中时，此处需要将变量factor_dict作为值，不能是[factor_dict],因"factor_dict"为list，所以此处不能再有"[]"；
-    "factor_dict": [
-        {"func_name_factor": "calculate_spread_signal",     # 配对交易类       # ！！！范例，使用时需删除！！！
-         "param_dataSrc": [
-             {"func_name_dataSrc": "read_file", "file_name": "2023_002266_trade_pickle4_M1_M1.bz2",
-              "colName_dataSrc": ['date', {'ts_code':'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-              "security": ['002266.SZ'],
-              'colName_tradePrice': 'close',
-              },
-             {"func_name_dataSrc": "read_file", "file_name": "2023_002268_trade_pickle4_M1_M1.bz2",
-              "colName_dataSrc": ['date', {'ts_code':'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-              "security": ['002268.SZ'],
-              'colName_tradePrice': 'close',
-              },
-         ],
-         "param_factor": {'window': 60},
-         "param_factor_combinations": {'window': [60, 600, 6000]},
-         # "param_signal_wrapper": {},
-         # "param_signal_wrapper_combinations": {},
-         "param_signal_search": {'bounds_val': ['sig_coef_A', 'sig_coef_B', 'sig_coef_C', 'sig_coef_D'], 'bounds': [(0.5, 5), (1, 6), (0.1, 3), (2, 8)], 'n_calls': 48, 'cost_slippage': [0.0002, 0.0002], 'signal_drop_num':0, 'add_0_signal_flags': {'cutoff_time_range': ''}, 'add_0_head_signal_flags': {'bc1_sc1_buy1_sale1_eq_0': False}},
-         "param_signal_search_combinations": {'bounds_val': [['sig_coef_A', 'sig_coef_B', 'sig_coef_C', 'sig_coef_D']], 'bounds': [[(0.5, 5), (1, 6), (0.1, 3), (2, 8)]], 'n_calls': 48, 'cost_slippage': [[0, 0], [0.0002, 0.0002]], 'signal_drop_num':[0, 10], 'add_0_signal_flags': {'cutoff_time_range': ''}},
-         "file_name_model": "factor_arbitrage",
-         # "start_date": '2024-10-10', "end_date": '2024-11-20',  # "start_date": '2025-01-18', "end_date": '2025-06-14',
-         },
+"factor_dict": [
+        {
+            # 黄金内外期货价差套利信号
+            "func_name_factor": "gold_cross_market_spread_signal",
+            "file_name_model": "factor_arbitrage",
 
-        {"func_name_factor": "Arbitrage_signal",     # 套利类       # ！！！范例，使用时需删除！！！
-         "param_dataSrc": [
-             # {"func_name_dataSrc": "read_file", "file_name": "2023_002266_trade_pickle4_M1_M1.bz2",
-             #  "colName_dataSrc": ['date', {'ts_code':'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-             #  "security": ['002266.XSHE'],
-             #  'colName_tradePrice': 'close',
-             #  },
-             # {"func_name_dataSrc": "read_file", "file_name": "2023_002268_trade_pickle4_M1_M1.bz2",
-             #  "colName_dataSrc": ['date', {'ts_code':'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-             #  "security": ['002268.XSHE'],
-             #  'colName_tradePrice': 'close',
-             #  },
-             # {"func_name_dataSrc": "read_file", "file_name": "2023_002271_trade_pickle4_M1_M1.bz2",
-             #  "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-             #  "security": ['002271.XSHE'],
-             #  'colName_tradePrice': 'close',
-             #  },
-             # 期权数据
-             {"func_name_dataSrc": "read_file", "file_name": "IO2303-C-3800.bz2",
-              "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],
-              "security": ['IO2303-C-3800'],
-              'colName_tradePrice': 'close',
-              },
-             {"func_name_dataSrc": "read_file", "file_name": "IO2303-C-3900.bz2",
-              "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],
-              "security": ['IO2303-C-3900'],
-              'colName_tradePrice': 'close',
-              },
-             {"func_name_dataSrc": "read_file", "file_name": "IO2303-C-4000.bz2",
-              "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],
-              "security": ['IO2303-C-4000'],
-              'colName_tradePrice': 'close',
-              },
-         ],
-         "param_factor": {'n': 2},
-         "param_factor_combinations": {'n': [1, 2]},
-         "param_signal_search": {'bounds_val': [], 'bounds': [], 'n_calls': 1, 'cost_slippage': [0.0002, 0.0002], 'signal_drop_num': 0, 'add_0_signal_flags': {'cutoff_time_range': ''}, 'add_0_head_signal_flags': {'bc1_sc1_buy1_sale1_eq_0': False}},
-         "param_signal_search_combinations": {'bounds_val': [[]], 'bounds': [[]], 'n_calls': 1, 'cost_slippage': [[0, 0], [0.0002, 0.0002]], 'signal_drop_num': [0, 10], 'add_0_signal_flags': {'cutoff_time_range': ''}},
-         "file_name_model": "factor_arbitrage",
-         "start_date": '2022-10-10', "end_date": '2024-10-11',  # "start_date": '2017-05-05', "end_date": '2018-05-20',
-         },
+            # 文件位于框架根目录的 data/gold_spread_long.csv
+            "param_dataSrc": [
+                {
+                    "func_name_dataSrc": "read_file",
+                    "file_name": "gold_spread_long.csv",
+                    "data_dir": "../data/",
+                    "colName_dataSrc": ["date", "ts_code", "close"],
+                    "colName_tradePrice": "close",
+                },
+            ],
 
-        {"func_name_factor": "Boundary_Arbitrage_signal",     # 套利类       # ！！！范例，使用时需删除！！！
-         "param_dataSrc": [
-             {"func_name_dataSrc": "read_file", "file_name": "2023_002266_trade_pickle4_M1_M1.bz2",
-              "colName_dataSrc": ['date', {'ts_code':'StockID'}, 'close', 'buy1', 'sale1', 'vol'],     # 使用期权链或期货链时将 {'ts_code':'StockID'} 替换为 {'ts_code':'type_chain_level'}
-              "security": ['002266.XSHE'],
-              'colName_tradePrice': 'close',
-              },
-             {"func_name_dataSrc": "read_file", "file_name": "IO2303-C-3800.bz2",
-              "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],
-              "security": ['IO2303-C-3800'],
-              'colName_tradePrice': 'close',
-              },
-             # {"func_name_dataSrc": "read_file", "file_name": "IO2303-P-3800.bz2",
-             #  "colName_dataSrc": ['date', {'ts_code': 'StockID'}, 'close', 'buy1', 'sale1', 'vol'],
-             #  "security": ['IO2303-P-3800'],
-             #  'colName_tradePrice': 'close',
-             #  },
-             {"func_name_dataSrc": "query_DB",
-              "colName_dataSrc": ['ts_code', 'maturity_date'],
-              # "security": ['IO2303-C-3800.CFX', 'IO2303-P-3800.CFX'],
-              "security": ['IO2303-C-3800.CFX'],
-              },
-         ],
-         "param_factor": {'r': 0, 'agg_rolling': 'sum'},
-         "param_signal_search": {'bounds_val': ['sig_coef_A', 'sig_coef_B'], 'bounds': [(0, 5), (0, 5)], 'n_calls': 48, 'cost_slippage': [0.0002, 0.0002], 'signal_drop_num': 0, 'add_0_signal_flags': {'cutoff_time_range': ''}, 'add_0_head_signal_flags': {'bc1_sc1_buy1_sale1_eq_0': False}},
-         "param_signal_search_combinations": {'bounds_val': [['sig_coef_A', 'sig_coef_B']], 'bounds': [[(0, 5), (0, 5)]], 'n_calls': 48, 'cost_slippage': [[0, 0], [0.0002, 0.0002]], 'signal_drop_num': [0, 10], 'add_0_signal_flags': {'cutoff_time_range': ''}},
-         "file_name_model": "factor_arbitrage",
-         },
+            "param_factor": {
+                # 研报价差：AU - GC * USD/CNY / 31.1035
+                "au_code": "AU0.SHF",
+                "gc_code": "GC.COMEX",
+                "fx_code": "USDCNY.FX",
 
+                # 仅用该日及以前的数据确定均值、标准差，避免未来数据进入阈值
+                "formation_end_date": "2022-12-30",
+                "min_formation_observations": 252,
+
+                # 偏离均值正负 2 个标准差开仓，回归均值平仓
+                "entry_sigma": 2.0,
+                "exit_sigma": 0.0,
+
+                # 偏离须连续保持两个交易日，过滤单日短暂偏离
+                "min_consecutive_days": 2,
+
+                # 信号次日执行
+                "execution_delay": 1,
+
+                # 研报给出的合约数量配比：AU : COMEX = 3 : 1
+                "au_contract_ratio": 3.0,
+                "gc_contract_ratio": 1.0,
+            },
+
+            # 不进行参数寻优，固定按研报参数运行
+            "param_signal_search": {
+                "bounds_val": [],
+                "bounds": [],
+                "n_calls": 1,
+                "cost_slippage": [0.0002, 0.0002],
+                "signal_drop_num": 0,
+                "add_0_signal_flags": {
+                    "cutoff_time_range": "",
+                },
+                "add_0_head_signal_flags": {
+                    "bc1_sc1_buy1_sale1_eq_0": False,
+                },
+            },
+
+            "param_signal_search_combinations": {},
+
+            # 形成期结束后开始检验，截止研报发布日前可取得的数据
+            "start_date": "2023-01-03",
+            "end_date": "2023-11-24",
+        },
     ],
-
 }
 
 
